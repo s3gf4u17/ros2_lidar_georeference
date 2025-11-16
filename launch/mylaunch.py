@@ -37,7 +37,7 @@ def generate_launch_description():
     after_setup = RegisterEventHandler(
         OnProcessExit(
             target_action=setup,
-            on_exit=[hello_world_node]
+            on_exit=[web_server,hello_world_node]
         )
     )
 
