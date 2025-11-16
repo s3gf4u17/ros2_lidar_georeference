@@ -5,7 +5,7 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     setup = ExecuteProcess(
-        cmd=["sudo","ls"],
+        cmd=["ls"],
         shell=False,
         output="screen",
     )
@@ -18,7 +18,7 @@ def generate_launch_description():
     )
 
     cleanup = ExecuteProcess(
-        cmd=["sudo","ls"],
+        cmd=["ls"],
         shell=False,
         output="screen",
     )
