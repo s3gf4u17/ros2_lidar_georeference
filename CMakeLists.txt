@@ -20,6 +20,10 @@ target_compile_features(hello_world PUBLIC c_std_99 cxx_std_17)  # Require C99 a
 install(TARGETS hello_world
   DESTINATION lib/${PROJECT_NAME})
 
+install(DIRECTORY script/
+  DESTINATION share/${PROJECT_NAME}/script
+)
+
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
