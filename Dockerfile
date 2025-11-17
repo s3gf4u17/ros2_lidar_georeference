@@ -26,5 +26,5 @@ RUN echo "cd /root/ros2ws" >> /root/.bashrc
 
 RUN apt install git -y
 
-RUN git clone https://github.com/ros2/examples /root/ros2ws/src/examples -b jazzy
+ARG CACHE_BUST=5
 RUN git clone https://github.com/s3gf4u17/ros2_lidar_georeference /root/ros2ws/src/ros2_lidar_georeference -b master
