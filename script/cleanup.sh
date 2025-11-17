@@ -1,3 +1,5 @@
+unset ROS2_LIDAR_GEOREFERENCE_DATA
+
 dest=/opt/leo_ui
 
 sudo rm "$dest/ros2_lidar_georeference.html"

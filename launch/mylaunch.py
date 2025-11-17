@@ -9,6 +9,11 @@ def generate_launch_description():
     pkg_share=get_package_share_directory("ros2_lidar_georeference")
     setup_script=os.path.join(pkg_share,"script","setup.sh")
 
+    ros2_data = "/home/pi/ros2_lidar_georeference_data/"
+    os.makedirs(os.path.join(ros2_data, "config"), exist_ok=True)
+    os.makedirs(os.path.join(ros2_data, "raw"), exist_ok=True)
+    os.makedirs(os.path.join(ros2_data, "las"), exist_ok=True)
+
     setup = ExecuteProcess(
         cmd=["bash",setup_script],
         shell=False,
