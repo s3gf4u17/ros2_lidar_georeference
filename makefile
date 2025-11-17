@@ -8,4 +8,12 @@ build:
 	docker build -t ros2image .
 
 build-pkg:
-	colcon build --packages-select my_package
+	colcon build --packages-select ros2_lidar_georeference
+
+run-pkg:
+	# Edit sudoers with visudo and add a line granting the ROS user NOPASSWD for the specific script(s):
+	# rosuser ALL=(root) NOPASSWD: /usr/local/bin/setup_hardware.sh, /usr/local/bin/cleanup_hardware.sh
+	ros2 launch ros2_lidar_georeference mylaunch.py
+
+scp:
+	scp -r ros2_lidar_georeference/* pi@leo-lis:/home/pi/src/ros2_lidar_georeference/
