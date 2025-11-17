@@ -15,11 +15,11 @@ def generate_launch_description():
         output="screen",
     )
 
-    web_server = ExecuteProcess(
-        cmd=["python3","-m","http.server","9000"],
-        shell=False,
-        output="screen",
-    )
+    # web_server = ExecuteProcess(
+    #     cmd=["python3","-m","http.server","9000"],
+    #     shell=False,
+    #     output="screen",
+    # )
 
     hello_world_node = Node(
         package="ros2_lidar_georeference",
@@ -29,7 +29,7 @@ def generate_launch_description():
     )
 
     cleanup = ExecuteProcess(
-        cmd=["ls"],
+        cmd=["echo","cleaningup"],
         shell=False,
         output="screen",
     )
@@ -37,7 +37,7 @@ def generate_launch_description():
     after_setup = RegisterEventHandler(
         OnProcessExit(
             target_action=setup,
-            on_exit=[web_server,hello_world_node]
+            on_exit=[hello_world_node]
         )
     )
 
