@@ -24,6 +24,10 @@ install(DIRECTORY script/
   DESTINATION share/${PROJECT_NAME}/script
 )
 
+install(DIRECTORY web/
+  DESTINATION share/${PROJECT_NAME}/web
+)
+
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch
 )
