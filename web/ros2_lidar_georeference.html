@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Battery Monitor & LiDAR Configs</title>
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <style>
+    body { padding: 20px; background-color: #f7f9fb; }
+    #battery-value { font-size: 2rem; }
+    #status { margin-top: 10px; color: green; }
+    #error { margin-top: 10px; color: red; }
+    h1, h2 { color: #1565c0; }
+    .config-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease;
+    }
+    .config-card:hover { transform: translateY(-2px); }
+    .uuid { font-weight: bold; font-size: 1.1em; color: #1e88e5; }
+    .meta { margin: 0.3rem 0; }
+    a.download-link {
+      color: #1e88e5;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.download-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Battery Monitor</h1>
+    <p>Topic: <code>/firmware/battery</code></p>
+    <div id="battery-value">—</div>
+    <div id="status">Connecting...</div>
+    <div id="error"></div>
+
+    <hr>
+
+    <h2>LiDAR Configurations</h2>
+    <p>Topic: <code>/thesis/measurements</code></p>
+    <div id="configs">Waiting for data...</div>
+  </div>
+
+  <!-- Dependencies -->
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script src="js/roslib.min.js"></script>
+  <script src="js/fullscreen.js"></script>
+  <script src="js/nipplejs.js"></script>
+  <script src="js/leo.js"></script>
+
+  <script>
+    $(function() {
+      // === ROSBRIDGE CONNECTION ===
+      const ros = new ROSLIB.Ros({
+        url: 'ws://' + window.location.hostname + ':9090'
+      });
+
+      ros.on('connection', function() {
+        $('#status').text('Connected to ROS bridge');
+      });
+
+      ros.on('error', function(error) {
+        $('#error').text('Error connecting: ' + error);
+      });
+
+      ros.on('close', function() {
+        $('#status').text('Disconnected from ROS bridge');
+      });
+
+      // === BATTERY MONITOR ===
+      const batteryTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/firmware/battery',
+        messageType: 'std_msgs/Float32'
+      });
+
+      batteryTopic.subscribe(function(message) {
+        $('#battery-value').text(message.data.toFixed(2));
+      });
+
+      // === LIDAR CONFIGS ===
+      const configTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/thesis/measurements',
+        messageType: 'std_msgs/String'
+      });
+
+      configTopic.subscribe(function(message) {
+        try {
+          const configs = JSON.parse(message.data);
+          renderConfigs(configs);
+        } catch (err) {
+          console.error("Invalid JSON received:", err, message.data);
+          $('#configs').html('<div class="text-danger">Invalid JSON data received.</div>');
+        }
+      });
+
+      function renderConfigs(configs) {
+        const container = $('#configs');
+        container.empty();
+
+        if (!configs || configs.length === 0) {
+          container.html('<p>No configuration files found.</p>');
+          return;
+        }
+
+        configs.forEach(cfg => {
+          const card = $(`
+            <div class="config-card">
+              <div class="uuid">${cfg.uuid}</div>
+              <div class="meta"><strong>Author:</strong> ${cfg.author || '—'}</div>
+              <div class="meta"><strong>Timestamp:</strong> ${new Date(cfg.timestamp).toLocaleString()}</div>
+              <a class="download-link" href="${cfg.file}" download>⬇ Download File</a>
+            </div>
+          `);
+          container.append(card);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
