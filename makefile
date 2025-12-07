@@ -1,3 +1,21 @@
+DRIVERS := velodyne
+
+build-all: clean-install $(DRIVERS:%=build-driver-%)
+
+push-all: $(DRIVERS:%=push-driver-%)
+
+clean-install:
+	sudo rm -rf $(DRIVERS:%=./driver/%/install)
+
+build-driver-%:
+	sudo docker build --platform linux/arm64 --tag driver-$*:builder driver/$*
+	container_id=$$(sudo docker create driver-$*:builder) && \
+	sudo docker cp $$container_id:/ws/install/ ./driver/$*/install && \
+	sudo docker rm $$container_id
+
+push-driver-%:
+	scp -r ./driver/$*/install pi@10.0.0.1:/home/pi/driver-$*
+
 default2:
 	ros2 launch leo_bringup leo_bringup.launch.xml # in /opt/ros/jazzy/share
 
