@@ -1,30 +1,25 @@
-FROM ubuntu:24.04
+FROM arm64v8/ros:jazzy-ros-base
 
-ENV LANG=C.UTF-8
+WORKDIR /ws/src
 
 RUN apt update && apt install -y \
-    software-properties-common && \
-    add-apt-repository universe && \
-    apt update && apt install -y \
-    curl
+    git \
+    ros-jazzy-velodyne \
+    ros-jazzy-ros-environment \
+    libyaml-cpp-dev \
+    libboost-all-dev \
+    zlib1g-dev \
+    libeigen3-dev \
+    linux-libc-dev \
+    nlohmann-json3-dev
 
-ENV ROS_APT_SOURCE_VERSION=1.1.0
+# RUN git clone --recurse-submodules -j8 https://github.com/ros-drivers/velodyne
+# RUN git clone --recurse-submodules -j8 https://github.com/fixposition/fixposition_driver
+COPY . ros2_lidar_georeference/
 
-RUN curl -L -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo ${UBUNTU_CODENAME:-${VERSION_CODENAME}})_all.deb"
+# WORKDIR /ws/src/fixposition_driver
+# RUN ./setup_ros_ws.sh
 
-RUN dpkg -i /tmp/ros2-apt-source.deb
+WORKDIR /ws
 
-RUN apt update && apt upgrade && apt install -y ros-jazzy-desktop
-
-RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
-
-RUN apt install python3-colcon-common-extensions -y
-
-RUN mkdir -p /root/ros2ws/src
-
-RUN echo "cd /root/ros2ws" >> /root/.bashrc
-
-RUN apt install git -y
-
-ARG CACHE_BUST=5
-RUN git clone https://github.com/s3gf4u17/ros2_lidar_georeference /root/ros2ws/src/ros2_lidar_georeference -b master
+RUN . /opt/ros/jazzy/setup.sh && colcon build --cmake-args -DBUILD_TESTING=OFF

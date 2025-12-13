@@ -1,0 +1,24 @@
+body { padding: 20px; }
+    #battery-value { font-size: 2rem; }
+    #status { margin-top: 10px; color: green; }
+    #error { margin-top: 10px; color: red; }
+    h1, h2 { color: #1565c0; }
+    .config-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      transition: transform 0.2s ease;
+    }
+    .config-card:hover { transform: translateY(-2px); }
+    .uuid { font-weight: bold; font-size: 1.1em; color: #1e88e5; }
+    .meta { margin: 0.3rem 0; }
+    a.download-link {
+      color: #1e88e5;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a.download-link:hover {
+      text-decoration: underline;
+    }
