@@ -53,12 +53,19 @@ public:
             "/measurement/collect", 10,
             std::bind(&MeasurementRecorder::collectCallback, this, std::placeholders::_1));
 
+        rclcpp::QoS lidar_qos(rclcpp::KeepLast(5));
+        lidar_qos.best_effort();
+
         cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
-            "/velodyne_points", 10,
+            "/velodyne_points",
+            lidar_qos,
             std::bind(&MeasurementRecorder::velodyneCallback, this, std::placeholders::_1));
 
+        rclcpp::QoS qos(rclcpp::KeepLast(10));
+        qos.best_effort();
         fixposition_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-            "/fixposition/odometry_ecef", 10,
+            "/fixposition/odometry_ecef",
+            qos,
             std::bind(&MeasurementRecorder::fixpositionCallback, this, std::placeholders::_1));
 
         startWorkers();
