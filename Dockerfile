@@ -13,7 +13,7 @@ RUN apt update && apt install -y \
     linux-libc-dev \
     nlohmann-json3-dev
 
-# RUN git clone --recurse-submodules -j8 https://github.com/ros-drivers/velodyne
+RUN git clone --recurse-submodules -j8 https://github.com/ros-drivers/velodyne
 # RUN git clone --recurse-submodules -j8 https://github.com/fixposition/fixposition_driver
 COPY . ros2_lidar_georeference/
 
