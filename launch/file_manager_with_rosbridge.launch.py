@@ -1,6 +1,9 @@
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.launch_description_sources import (
+    PythonLaunchDescriptionSource,
+    AnyLaunchDescriptionSource,
+)
 from launch_ros.actions import Node
 import os
 
@@ -37,6 +40,16 @@ def generate_launch_description():
         )
     )
 
+    fixposition_launch = IncludeLaunchDescription(
+        AnyLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("fixposition_driver_ros2"),
+                "launch",
+                "node.launch"
+            )
+        )
+    )
+
     measurement_collector = Node(
         package="ros2_lidar_georeference",
         executable="measurement_collector",   # <-- your node executable name
@@ -52,5 +65,6 @@ def generate_launch_description():
         rosbridge,
         file_manager,
         velodyne_launch,
+        fixposition_launch,
         measurement_collector
     ])

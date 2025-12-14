@@ -3,7 +3,8 @@
 #include "ros2_lidar_georeference/msg/measurement_collect.hpp"
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
+
+#include <nav_msgs/msg/odometry.hpp>
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -42,10 +43,9 @@ public:
         if (skip_ < 1) skip_ = 1;
         if (worker_count_ < 1) worker_count_ = 1;
 
-        pkg_root_ = std::filesystem::current_path().string();
-        points_dir_   = pkg_root_ + "/raw/points";
-        position_dir_ = pkg_root_ + "/raw/position";
-
+        auto base = std::filesystem::path(std::getenv("HOME")) / ".ros" / "ros2_lidar_georeference";
+        points_dir_   = (base / "raw/points").string();
+        position_dir_ = (base / "raw/position").string();
         std::filesystem::create_directories(points_dir_);
         std::filesystem::create_directories(position_dir_);
 
@@ -57,8 +57,8 @@ public:
             "/velodyne_points", 10,
             std::bind(&MeasurementRecorder::velodyneCallback, this, std::placeholders::_1));
 
-        fixposition_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
-            "/fixposition/pose", 10,
+        fixposition_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+            "/fixposition/odometry_ecef", 10,
             std::bind(&MeasurementRecorder::fixpositionCallback, this, std::placeholders::_1));
 
         startWorkers();
@@ -96,7 +96,8 @@ private:
     // ---------------- ROS ----------------
     rclcpp::Subscription<ros2_lidar_georeference::msg::MeasurementCollect>::SharedPtr collect_sub_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub_;
-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr fixposition_sub_;
+
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr fixposition_sub_;
 
     // ---------------- Worker control ----------------
     void startWorkers()
@@ -174,25 +175,23 @@ private:
         });
     }
 
-    void fixpositionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+    void fixpositionCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
         if (!recording_)
             return;
 
-        tf2::Quaternion q(
-            msg->pose.orientation.x,
-            msg->pose.orientation.y,
-            msg->pose.orientation.z,
-            msg->pose.orientation.w);
+        const auto &p = msg->pose.pose.position;
+        const auto &q = msg->pose.pose.orientation;
 
-        tf2::Matrix3x3 m(q);
+        tf2::Quaternion quat(q.x, q.y, q.z, q.w);
+        tf2::Matrix3x3 m(quat);
+
         double roll, pitch, yaw;
         m.getRPY(roll, pitch, yaw);
 
+        // ECEF position (meters) + orientation (radians)
         double data[6] = {
-            msg->pose.position.x,
-            msg->pose.position.y,
-            msg->pose.position.z,
+            p.x, p.y, p.z,   // ECEF XYZ
             roll, pitch, yaw
         };
 
