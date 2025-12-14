@@ -124,8 +124,7 @@ private:
 
     void process(const std::string& uuid)
     {
-        fs::path home = std::getenv("HOME");
-        fs::path raw = home / RAW_ROOT; // "/.ros/ros2_lidar_georeference/raw";
+        fs::path raw = fs::path("/var/tmp/ros2_lidar_georeference") / "raw";
         fs::path points_dir = raw / "points";
         fs::path pos_dir = raw / "position";
 

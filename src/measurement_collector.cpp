@@ -43,7 +43,8 @@ public:
         if (skip_ < 1) skip_ = 1;
         if (worker_count_ < 1) worker_count_ = 1;
 
-        auto base = std::filesystem::path(std::getenv("HOME")) / ".ros" / "ros2_lidar_georeference";
+        auto base = std::filesystem::path("/var/tmp/ros2_lidar_georeference");
+
         points_dir_   = (base / "raw/points").string();
         position_dir_ = (base / "raw/position").string();
         std::filesystem::create_directories(points_dir_);
