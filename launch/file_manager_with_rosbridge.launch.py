@@ -61,10 +61,18 @@ def generate_launch_description():
         }]
     )
 
+    measurement_processor = Node(
+        package="ros2_lidar_georeference",
+        executable="measurement_processor",   # <-- your node executable name
+        name="measurement_processor",
+        output="screen"
+    )
+
     return LaunchDescription([
         rosbridge,
         file_manager,
         velodyne_launch,
         fixposition_launch,
-        measurement_collector
+        measurement_collector,
+        measurement_processor
     ])

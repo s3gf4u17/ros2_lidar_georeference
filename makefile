@@ -9,6 +9,7 @@ DATE := $(shell date +%Y%m%d%H%M%S)
 WEB_ROOT := /var/www/$(SITE_NAME)
 DOWNLOAD_DIR := $(WEB_ROOT)/downloads
 VELODYNE_IP := 10.0.0.80
+FIXPOSITION_IP := 10.0.0.137
 
 # === RULES FOR EXECUTION ON LEO ROVER ===
 nginx-install: FORCE;
@@ -87,7 +88,7 @@ FORCE: ;
 
 run: nginx-install
 	sed -i 's/192.168.1.201/$(VELODYNE_IP)/g' $(ROOT_DIR)/../velodyne_driver/share/velodyne_driver/config/VLP16-velodyne_driver_node-params.yaml
-	sed -i 's/10.0.2.1/10.0.0.137/g' $(ROOT_DIR)/../fixposition_driver_ros2/share/fixposition_driver_ros2/launch/config.yaml
+	sed -i 's/10.0.2.1/$(FIXPOSITION_IP)/g' $(ROOT_DIR)/../fixposition_driver_ros2/share/fixposition_driver_ros2/launch/config.yaml
 	@bash -c "source /opt/ros/jazzy/setup.bash && \
 	    source install/setup.bash && \
 	    ros2 launch ros2_lidar_georeference file_manager_with_rosbridge.launch.py"
@@ -109,3 +110,6 @@ test-1:
 
 test-2:
 	ros2 topic pub /measurement/collect   ros2_lidar_georeference/msg/MeasurementCollect   "{uuid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'}" --once
+
+test-3:
+	ros2 service call /measurement/process   ros2_lidar_georeference/srv/MeasurementProcess   "{uuid: '123e4567-e89b-12d3-a456-426614174000'}"

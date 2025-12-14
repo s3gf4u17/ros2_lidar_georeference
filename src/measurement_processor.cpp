@@ -17,7 +17,7 @@ using MeasurementProcess =
 namespace fs = std::filesystem;
 
 static constexpr const char* RAW_ROOT =
-    "/.ros/ros2_lidar_georeference/raw";
+    ".ros/ros2_lidar_georeference/raw";
 static constexpr const char* OUTPUT_ROOT =
     "/var/www/ros2_lidar_georeference/downloads";
 
@@ -103,7 +103,21 @@ private:
             process(req->uuid);
             res->response_value = 0;
         }
+        catch (const std::exception &e) {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Measurement processing failed for uuid '%s': %s",
+                req->uuid.c_str(),
+                e.what()
+            );
+            res->response_value = -2;
+        }
         catch (...) {
+            RCLCPP_ERROR(
+                this->get_logger(),
+                "Measurement processing failed for uuid '%s': unknown exception",
+                req->uuid.c_str()
+            );
             res->response_value = -2;
         }
     }
@@ -111,12 +125,23 @@ private:
     void process(const std::string& uuid)
     {
         fs::path home = std::getenv("HOME");
-        fs::path raw = home / RAW_ROOT;
+        fs::path raw = home / RAW_ROOT; // "/.ros/ros2_lidar_georeference/raw";
         fs::path points_dir = raw / "points";
         fs::path pos_dir = raw / "position";
 
+        RCLCPP_INFO(get_logger(), "Measurement processor launched");
+
+        RCLCPP_INFO(
+            this->get_logger(),
+            "Looking for raw data:\n  points_dir = %s\n  position_dir = %s",
+            points_dir.string().c_str(),
+            pos_dir.string().c_str()
+        );
+
         if (!fs::exists(points_dir) || !fs::exists(pos_dir))
             throw std::runtime_error("Missing raw data");
+
+        RCLCPP_INFO(get_logger(), "RAW data exists");
 
         /* ---- Load poses ---- */
 

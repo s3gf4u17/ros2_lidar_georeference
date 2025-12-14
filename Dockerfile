@@ -22,4 +22,4 @@ RUN ./setup_ros_ws.sh
 
 WORKDIR /ws
 
-RUN . /opt/ros/jazzy/setup.sh && colcon build --cmake-args -DBUILD_TESTING=OFF
+RUN . /opt/ros/jazzy/setup.sh && colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS_RELEASE="-O3" -DCMAKE_CXX_FLAGS_RELEASE="-O3" -DBUILD_TESTING=OFF
