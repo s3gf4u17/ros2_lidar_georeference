@@ -7,7 +7,7 @@ project(ros2_lidar_georeference)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-
+find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -21,11 +21,12 @@ find_package(ament_index_cpp REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FileList.msg"
   "msg/MeasurementCollect.msg"
-  "msg/MeasurementFeedback.msg"
+  # "msg/MeasurementFeedback.msg"
   "srv/FileDelete.srv"
-  "srv/MeasurementGoal.srv"
+  # "srv/MeasurementGoal.srv"
   "srv/MeasurementProcess.srv"
-  "srv/MeasurementResult.srv"
+  # "srv/MeasurementResult.srv"
+  # "action/Measurement.action"
 )
 
 #########################################
@@ -70,6 +71,18 @@ ament_target_dependencies(measurement_processor
 )
 
 #########################################
+# Measurement manager (orchestrator)
+#########################################
+# add_executable(measurement_manager
+#   src/measurement_manager.cpp
+# )
+
+# ament_target_dependencies(measurement_manager
+#   rclcpp
+#   rclcpp_action
+# )
+
+#########################################
 # ROSIDL type support (Jazzy-correct)
 #########################################
 rosidl_get_typesupport_target(cpp_typesupport_target
@@ -84,6 +97,9 @@ target_link_libraries(measurement_collector
 target_link_libraries(measurement_processor
   ${cpp_typesupport_target})
 
+# target_link_libraries(measurement_manager
+#   ${cpp_typesupport_target})
+
 #########################################
 # Install targets
 #########################################
@@ -91,6 +107,7 @@ install(TARGETS
   file_manager
   measurement_collector
   measurement_processor
+  # measurement_manager
   DESTINATION lib/${PROJECT_NAME}
 )
 

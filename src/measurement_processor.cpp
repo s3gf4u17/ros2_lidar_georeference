@@ -54,6 +54,36 @@ struct PoseECEF {
     double roll, pitch, yaw;
 };
 
+void cleanup_raw_files(const fs::path& points_dir,
+                       const fs::path& pos_dir)
+{
+    auto cleanup_dir = [&](const fs::path& dir)
+    {
+        if (!fs::exists(dir) || !fs::is_directory(dir))
+            return;
+
+        for (const auto& entry : fs::directory_iterator(dir))
+        {
+            if (entry.is_regular_file())
+            {
+                std::error_code ec;
+                fs::remove(entry.path(), ec);
+                if (ec)
+                {
+                    RCLCPP_WARN(
+                        rclcpp::get_logger("measurement_processor"),
+                        "Failed to remove file %s: %s",
+                        entry.path().c_str(),
+                        ec.message().c_str());
+                }
+            }
+        }
+    };
+
+    cleanup_dir(points_dir);
+    cleanup_dir(pos_dir);
+}
+
 /* ---------------- Node ---------------- */
 
 class MeasurementProcessor : public rclcpp::Node
@@ -214,7 +244,7 @@ private:
 
         /* ---- Cleanup ---- */
 
-        fs::remove_all(raw);
+        cleanup_raw_files(points_dir, pos_dir);
     }
 };
 
