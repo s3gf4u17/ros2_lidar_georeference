@@ -75,6 +75,13 @@ def generate_launch_description():
         output="screen"
     )
 
+    measurement_web_bridge = Node(
+        package="ros2_lidar_georeference",
+        executable="measurement_web_bridge",   # <-- your node executable name
+        name="measurement_web_bridge",
+        output="screen"
+    )
+
     return LaunchDescription([
         rosbridge,
         file_manager,
@@ -82,5 +89,6 @@ def generate_launch_description():
         fixposition_launch,
         measurement_collector,
         measurement_processor,
-        measurement_manager
+        measurement_manager,
+        measurement_web_bridge
     ])

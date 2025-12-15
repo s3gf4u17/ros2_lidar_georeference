@@ -1,33 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Battery Monitor & LiDAR Configs</title>
-  <!-- <link rel="stylesheet" href="http://10.0.0.1/css/bootstrap.min.css"> -->
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<title>Battery Monitor & LiDAR Configs</title>
+<!-- <link rel="stylesheet" href="http://10.0.0.1/css/bootstrap.min.css"> -->
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Battery Monitor</h1>
-    <p>Topic: <code>/firmware/battery</code></p>
-    <div id="battery-value">—</div>
-    <div id="status">Connecting...</div>
-    <div id="error"></div>
+<div class="container">
+<h1>Battery Monitor</h1>
+<p>Topic: <code>/firmware/battery</code></p>
+<div id="battery-value">—</div>
+<div id="status">Connecting...</div>
+<div id="error"></div>
 
-    <hr>
+<hr>
 
-    <h2>LiDAR Configurations</h2>
-    <p>Topic: <code>/thesis/measurements</code></p>
-    <div id="configs">Waiting for data...</div>
-  </div>
+<h2>Measurement Control</h2>
+<p>Action: <code>/measurement</code></p>
+<div class="measurement-control">
+  <button id="action-button" class="action-button start" disabled>
+    Start Measurement
+  </button>
+  <div id="feedback-container"></div>
+  <div id="result-container"></div>
+</div>
 
-  <!-- Dependencies -->
-  <script src="http://10.0.0.1/js/jquery.min.js"></script>
-  <!-- <script src="http://10.0.0.1/js/bootstrap.min.js"></script> -->
-  <script src="http://10.0.0.1/js/roslib.min.js"></script>
-  <!-- <script src="http://10.0.0.1/js/fullscreen.js"></script>
+<hr>
+
+<h2>LiDAR Configurations</h2>
+<p>Topic: <code>/thesis/configs</code></p>
+<div id="configs">Waiting for data...</div>
+</div>
+
+<!-- Dependencies -->
+<script src="http://10.0.0.1/js/jquery.min.js"></script>
+<!-- <script src="http://10.0.0.1/js/bootstrap.min.js"></script> -->
+<script src="http://10.0.0.1/js/roslib.min.js"></script>
+<!-- <script src="http://10.0.0.1/js/fullscreen.js"></script>
   <script src="http://10.0.0.1/js/nipplejs.js"></script> -->
-
-  <script src="js/script.js"></script>
+<script src="js/script.js"></script>
 </body>
 </html>

@@ -115,20 +115,5 @@ test-2:
 test-3:
 	ros2 service call /measurement/process   ros2_lidar_georeference/srv/MeasurementProcess   "{uuid: '123e4567-e89b-12d3-a456-426614174000'}"
 
-test-4:
-	ros2 service call /measurement/goal ros2_lidar_georeference/srv/MeasurementGoal "{request_value: 1}"
-
-test-5:
-	ros2 service call /measurement/result ros2_lidar_georeference/srv/MeasurementResult "{request_value: 1}"
-
-test-6:
-	ros2 topic echo /measurement/feedback
-
 test-7:
 	ros2 action send_goal /measurement ros2_lidar_georeference/action/Measurement "{request_value: 1}"
-
-test-8:
-	ros2 action feedback /measurement
-
-test-9:
-	ros2 action result /measurement
