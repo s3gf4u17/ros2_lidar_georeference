@@ -26,7 +26,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   # "srv/MeasurementGoal.srv"
   "srv/MeasurementProcess.srv"
   # "srv/MeasurementResult.srv"
-  # "action/Measurement.action"
+  "action/Measurement.action"
 )
 
 #########################################
@@ -73,14 +73,14 @@ ament_target_dependencies(measurement_processor
 #########################################
 # Measurement manager (orchestrator)
 #########################################
-# add_executable(measurement_manager
-#   src/measurement_manager.cpp
-# )
+add_executable(measurement_manager
+  src/measurement_manager.cpp
+)
 
-# ament_target_dependencies(measurement_manager
-#   rclcpp
-#   rclcpp_action
-# )
+ament_target_dependencies(measurement_manager
+  rclcpp
+  rclcpp_action
+)
 
 #########################################
 # ROSIDL type support (Jazzy-correct)
@@ -97,8 +97,8 @@ target_link_libraries(measurement_collector
 target_link_libraries(measurement_processor
   ${cpp_typesupport_target})
 
-# target_link_libraries(measurement_manager
-#   ${cpp_typesupport_target})
+target_link_libraries(measurement_manager
+  ${cpp_typesupport_target})
 
 #########################################
 # Install targets
@@ -107,7 +107,7 @@ install(TARGETS
   file_manager
   measurement_collector
   measurement_processor
-  # measurement_manager
+  measurement_manager
   DESTINATION lib/${PROJECT_NAME}
 )
 

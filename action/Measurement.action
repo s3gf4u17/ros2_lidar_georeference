@@ -1,0 +1,10 @@
+# Goal
+int32 request_value
+---
+# Result
+bool success
+string uuid
+string download
+---
+# Feedback
+int32 state   # 0=IDLE, 1=COLLECTING, 2=PROCESSING
