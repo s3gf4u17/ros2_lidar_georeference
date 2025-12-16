@@ -4,7 +4,7 @@ This package is designed for a [Leo Rover](https://www.leorover.tech/) robot, bu
 
 | Leo Rover with installed Velodyne VLP16 and Fixpostion Vision-RTK 2 |
 |----------|
-| ![Rover Image](img/rover.jpeg) |
+| ![Rover Image](image/IMG_1818-min.jpg) |
 
 
 
