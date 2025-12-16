@@ -6,6 +6,10 @@ This package is developed for the [Leo Rover](https://www.leorover.tech/) platfo
 
 On user request, the package records [Velodyne](https://github.com/ros-drivers/velodyne) LiDAR point clouds together with ECEF positioning data published by the [Fixposition](https://github.com/fixposition/fixposition_driver) driver, storing the data in a temporary workspace. When the measurement session is stopped, the collected data is fused offline into a single .las file ([LAS version 1.2](https://liblas.org/_static/files/specifications/asprs_las_format_v12.pdf)), which is then made available for user download.
 
+| Measurement Manager Workflow |
+|----------|
+| ![Measurement Manager Workflow](image/measurement_manager.jpg) |
+
 | Leo Rover platform with sensors installed |
 |----------|
 | ![Leo Rover platform with sensors installed](image/IMG_1818-min.jpg) |
