@@ -16,6 +16,39 @@ On user request, the package records [Velodyne](https://github.com/ros-drivers/v
 |----------|----------|
 | ![VLP16 Sensor](image/IMG_1819-min.jpg) | ![Interface Box](image/IMG_1820-min.jpg) |
 
+After connecting the Interface Box to Leo Rover onboard Raspberry Pi 4, run nmap to check if Interface Box was automatically assigned a local IP address. In nmap response you should find a following block.
+
+```bash
+$ nmap 10.0.0.1/24
+...
+Nmap scan report for 10.0.0.80
+Host is up (0.013s latency).
+Not shown: 998 filtered tcp ports (no-response)
+PORT   STATE SERVICE
+23/tcp open  telnet
+80/tcp open  http
+MAC Address: xx:xx:xx:xx:xx:xx (Velodyne)
+```
+
+If this block is missing run:
+
+```bash
+sudo ip addr add 192.168.1.100/24 dev br0
+sudo ip link set br0 up
+```
+
+If the bridge is configure properly between br0 and eth0 interfaces, the Interface Box should be assigned an IP address. Run nmap again to verify.
+
+After configuring the sensor network connection, open sensor ip address in the browser. You should see the following Web UI.
+
+...
+
+To verify that the sensor works as it should, install VeloView and run nmap again to see your local PC IP address in Leo Rover local network. Pass this IP address to the Velodyne Web UI and click "Set" to confirm.
+
+Open VeloView and add a new Sensor Stream for VLP16. You should see a live point cloud data.
+
+After verifying, change the stream IP address in Velodyne Web UI back to 10.0.0.1.
+
 ## Preparation: Fixposition Vision-RTK 2 
 
 | Vision-RTK 2 Sensor | GNSS Antennas |
@@ -115,46 +148,3 @@ To clean all the environment configuration and files, run:
 ```bash
 make clean
 ```
-
-1. Build ROS2 drivers for `velodyne`, `fixposition` and the `ros2_lidar_georeference` package:
-
-```bash
-[RUN ON BUILD PC]
-make build-all
-```
-
-2. Connect the Velodyne sensor to `eth0`. Configure the network:
-
-```bash
-[RUN ON ROVER]
-sudo ip addr add 192.168.1.100/24 dev br0
-sudo ip link set br0 up
-```
-
-3. if the dhcp is enabled, you can access the velodyne web ui directly from the browser. if the dhcp is disabled, you will need to set up ssh tunnelling via 10.0.0.1
-
-4. check if sensor is sending data
-
-```bash
-sudo tcpdump -i eth0 -w test.pcap
-du -h test.pcap
-```
-
-5. if the dhcp is enabled, the sensor will be assigned an IP in the 10.0.0.1/24 domain, velodyne config change is required (device_ip in velodyne_driver/config/VLP16-velodyne_driver_node-params.yaml)
-
-6. launch velodyne node
-
-```bash
-source driver-velodyne/setup.bash
-ros2 launch velodyne velodyne-all-nodes-VLP16-launch.py
-```
-
-7. check if the node is reading the tcp data correctly and publishing it on the /velodyne_points topic
-
-```bash
-ros2 topic echo /velodyne_points
-```
-
-
-
-package is designed for leo rover, but can be ported to other machines that run rosbridge and nginx. just update 'dest' nginx directory in script/setup.sh
