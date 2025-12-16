@@ -39,7 +39,11 @@ sudo ip link set br0 up
 
 If the bridge is configure properly between br0 and eth0 interfaces, the Interface Box should be assigned an IP address. Run nmap again to verify.
 
-After configuring the sensor network connection, open sensor ip address in the browser. You should see the following Web UI.
+After configuring the sensor network connection, open sensor ip address in the browser. You should see the following Web UI. If you see the default Leo Rover 10.0.0.1 UI, try:
+
+``` bash
+systemctl nginx restart
+```
 
 ...
 
@@ -54,6 +58,18 @@ After verifying, change the stream IP address in Velodyne Web UI back to 10.0.0.
 | Vision-RTK 2 Sensor | GNSS Antennas |
 |----------|----------|
 | ![Vision-RTK 2 Sensor](image/IMG_1821-min.jpg) | ![GNSS Antennas](image/IMG_1822-min.jpg) |
+
+```bash
+$ nmap 10.0.0.1/24
+...
+Nmap scan report for 10.0.0.137
+Host is up (0.0041s latency).
+Not shown: 998 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+MAC Address: xx:xx:xx:xx:xx:xx (Laird Connectivity)
+```
 
 ## Project: Build and Upload
 
