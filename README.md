@@ -172,3 +172,4 @@ make clean
 ## Improvements that can be made
 
 - Add package to the default Leo Rover ROS2 workspace. This will enable ros2_lidar_georeference message, service and action definitions at startup. Then, second Rosbridge on 9091 can be dropped as the default Rosbridge instance will be sufficient for ros_lidar_georeference package.
+- Upload .las files to AWS for additional, compute intensive, processing.
