@@ -22,7 +22,7 @@ On user request, the package records [Velodyne](https://github.com/ros-drivers/v
 |----------|----------|
 | ![Vision-RTK 2 Sensor](image/IMG_1821-min.jpg) | ![GNSS Antennas](image/IMG_1822-min.jpg) |
 
-## Package: Build and Upload
+## Project: Build and Upload
 
 Repository contains a Dockerfile definition of a an image that builds all the packages in release mode, without symlinks. This way we can assure that the install/ folder is portable and can be copied between machines. If you have docker installed and daemon running, run:
 
@@ -30,11 +30,14 @@ Repository contains a Dockerfile definition of a an image that builds all the pa
 make build
 ```
 
-As a result, you will see a zip archive `upload.zip`. It contains the contents of the `install` folder as well as a `makefile`. To upload the project on the Leo Rover, connect to its WiFi network and run:
+As a result, you will see a zip archive `upload.zip`. It contains the contents of the `install` folder as well as the `makefile`. To upload the project on the Leo Rover, connect to its WiFi network and run:
 
 ```bash
 make upload
 ```
+
+> [!CAUTION]  
+> If you're building this project on a Raspberry PI 4, check the `clean` rule definition in `makefile` before executing it. You will need to change the if-else statement to perform the correct cleanup action.
 
 At this point the project is built and ready for execution on the Leo Rover. As the last step you can run:
 
@@ -47,8 +50,71 @@ To clean the environment on your local PC.
 > [!WARNING]  
 > Executing `make clean` does not clean the docker builder cache. To do so run `docker builder prune`.
 
+## Project: Configure and Run
 
+Connect to Leo Rover WiFi network and SSH to remote terminal. First, unzip the uploaded project:
 
+```bash
+unzip upload.zip
+```
+
+And run the setup script so that ROS2 can see new packages:
+
+```bash
+source install/setup.bash
+```
+
+Next step is to update the configuration of Velodyne and Fixposition drivers to match the IP addresses of sensors in the Leo Rover 10.0.0.1/24 network. To do so, run:
+
+```bash
+make configure
+```
+
+> [!WARNING]  
+> For non standard installation, update `VELODYNE_IP` and `FIXPOSITION_IP` variables in the makefile.
+
+After you have swapped IP addresses in the configuration files, inject a new web config to the running nginx instance:
+
+```bash
+make nginx
+```
+
+> [!WARNING]  
+> The default port for the new web service is 8888. If the port is already in use in your environment, update the `SITE_PORT` variable in the makefile.
+
+Go to 10.0.0.1:8888 to verify if Web UI is available.
+
+Once the injection is completed, you need to load group changes and source the setup script one more time:
+
+```bash
+newgrp webshare
+source install/setup.bash
+```
+
+Now the environment is fully prepared to launch project nodes (in `screen` so they will persist even after closing the SSH terminal session):
+
+```bash
+make run
+```
+
+After a few moments (required for rosbridge instance to spin up), you will see the status in Web UI change to "Connected".
+
+## Project: Shutdown and Cleanup
+
+To shutdown the project, find the screen id and then use it to reattach:
+
+```bash
+screen -list
+screen -r <screen id>
+```
+
+Press CTRL + C to close all nodes.
+
+To clean all the environment configuration and files, run:
+
+```bash
+make clean
+```
 
 1. Build ROS2 drivers for `velodyne`, `fixposition` and the `ros2_lidar_georeference` package:
 
