@@ -1,32 +1,101 @@
-# === CONFIG ===
+# === MAKEFILE LOGGER ===
+
+COLOR_succ := \033[0;32m
+COLOR_warn := \033[0;33m
+COLOR_info := \033[0;34m
+COLOR_erro := \033[0;31m
+COLOR_rest := \033[0m
+
+define mk_log
+	printf "%b[%s] %s%b\n" "$(COLOR_$(1))" "$(shell echo $(1) | tr a-z A-Z)" "$(2)" "$(COLOR_rest)"
+endef
+
+# === PACKAGE BUILDER === EXECUTE ON LOCAL PC ===
+
+REQUIRED_PKGS := \
+	fixposition_driver_lib \
+	fixposition_driver_msgs \
+	fixposition_driver_ros2 \
+	fpsdk_apps \
+	fpsdk_common \
+	fpsdk_ros2 \
+	ros2_lidar_georeference \
+	rtcm_msgs \
+	velodyne \
+	velodyne_driver \
+	velodyne_laserscan \
+	velodyne_msgs \
+	velodyne_pointcloud
+
+define mk_check_pkg
+	@for pkg in $(REQUIRED_PKGS); do \
+		if [ ! -d install/$$pkg ]; then \
+			$(call mk_log,erro,package missing $$pkg); \
+			exit 4; \
+		fi; \
+	done
+endef
+
+build:
+	@$(call mk_log,info,removing old build files)
+	@rm -rf install/ upload.zip \
+		|| {$(call mk_log,erro,failed to remove old build files); exit 1;}
+	@$(call mk_log,info,creating docker builder image. this may take a moment)
+	@docker build --quiet --platform linux/arm64 --tag ros2_lidar_georeference:builder . \
+		|| {$(call mk_log,erro,failed to create docker builder image); exit 2;}
+	@$(call mk_log,info,extracting install/ folder from the builder image)
+	@container_id=$$(docker create ros2_lidar_georeference:builder) \
+		&& docker cp $$container_id:/ws/install/ install/ \
+		&& docker rm $$container_id \
+		|| {$(call mk_log,erro,failed to copy install/ files); exit 3;}
+	@$(call mk_check_pkg)
+	@$(call mk_log,info,all required packages found. zipping install/)
+	@zip -rq upload.zip install/ makefile \
+		&& $(call mk_log,succ,build success) \
+		|| $(call mk_log,erro,error creating a zip package)
+
+# === PACKAGE UPLOAD === EXECUTE ON LOCAL PC ===
+
+ROVER_USER := pi
+ROVER_IP := 10.0.0.1
+UPLOAD_DIRECTORY := /home/pi/
+
+upload:
+	@$(call mk_log,info,uploading deployment zip package to leo rover)
+	@scp upload.zip $(ROVER_USER)@$(ROVER_IP):$(UPLOAD_DIRECTORY) \
+		&& $(call mk_log,succ,zip package uploaded) \
+		|| $(call mk_log,erro,error uploading a zip package)
+
+# === NGINX INSTALL == EXECUTE ON LEO ROVER ===
+
 NGINX_SITES_ENABLED := /etc/nginx/sites-enabled
 SITE_NAME := ros2_lidar_georeference
-PORT := 8888
-ROOT_DIR := $(shell ros2 pkg prefix ros2_lidar_georeference)
-NGINX := nginx
-CONF_FILE := $(NGINX_SITES_ENABLED)/$(SITE_NAME)
-DATE := $(shell date +%Y%m%d%H%M%S)
+SITE_PORT := 8888
+PKG_ROOT := $(shell ros2 pkg prefix ros2_lidar_georeference)
 WEB_ROOT := /var/www/$(SITE_NAME)
+CONF_FILE := $(NGINX_SITES_ENABLED)/$(SITE_NAME)
 DOWNLOAD_DIR := $(WEB_ROOT)/downloads
-VELODYNE_IP := 10.0.0.80
-FIXPOSITION_IP := 10.0.0.137
+NGINX := nginx
 
-# === RULES FOR EXECUTION ON LEO ROVER ===
-nginx-install: FORCE;
-	@echo "Installing nginx site $(SITE_NAME) on port $(PORT)"
-	@sudo mkdir -p $(WEB_ROOT)
-	@sudo mkdir -p $(DOWNLOAD_DIR)
-	@sudo cp -r $(ROOT_DIR)/share/ros2_lidar_georeference/web/* $(WEB_ROOT)
-	@sudo groupadd -f webshare
-	@sudo usermod -a -G webshare pi
-	@sudo usermod -a -G webshare www-data
-	@sudo chown -R www-data:webshare $(WEB_ROOT)
-	@sudo chmod -R 775 $(DOWNLOAD_DIR)
-	@sudo chmod g+s $(DOWNLOAD_DIR)
+nginx:
+	@$(call mk_log,info,creating nginx files)
+	@sudo mkdir -p $(DOWNLOAD_DIR) \
+		|| {$(call mk_log,erro,failed to create folder in /var/www/); exit 4;}
+	@sudo cp -r $(PKG_ROOT)/share/ros2_lidar_georeference/web/* $(WEB_ROOT) \
+		|| {$(call mk_log,erro,failed to copy web files); exit 5;}
+	@$(call mk_log,info,configuring webshare group)
+	@sudo groupadd -f webshare \
+		&& sudo usermod -a -G webshare pi \
+		&& sudo usermod -a -G webshare www-data \
+		&& sudo chown -R www-data:webshare $(WEB_ROOT) \
+		&& sudo chmod -R 775 $(DOWNLOAD_DIR) \
+		&& sudo chmod g+s $(DOWNLOAD_DIR) \
+		|| {$(call mk_log,erro,failed to configure webshare group); exit 6;}
+	@$(call mk_log,info,configuring nginx)
 	@printf "%s\n" \
 		"server {" \
-		"    listen $(PORT);" \
-		"    listen [::]:$(PORT);" \
+		"    listen $(SITE_PORT);" \
+		"    listen [::]:$(SITE_PORT);" \
 		"    server_name _;" \
 		"    root $(WEB_ROOT);" \
 		"    index index.html;" \
@@ -47,73 +116,60 @@ nginx-install: FORCE;
 		"        return 403;" \
 		"    }" \
 		"}" \
-		| sudo tee $(CONF_FILE) > /dev/null
-	@$(MAKE) nginx-test
-	@$(MAKE) nginx-reload
-	@echo "Done. Available at http://10.0.0.1:$(PORT)"
-	@echo "App should write files to: $(DOWNLOAD_DIR)"
+		| sudo tee $(CONF_FILE) > /dev/null \
+		&& sudo $(NGINX) -t \
+		&& sudo $(NGINX) -s reload \
+		|| {$(call mk_log,erro,failed to configure nginx); exit 7;}
+	@$(call mk_log,succ,web ui available)
 
-nginx-uninstall: FORCE
-	@echo "Uninstalling nginx site $(SITE_NAME)"
-	@if [ -f $(CONF_FILE) ]; then \
-		echo "Removing nginx config..."; \
-		sudo rm -f $(CONF_FILE); \
+# === PACKAGES CONFIGURE == EXECUTE ON LEO ROVER ===
+
+VELODYNE_IP := 10.0.0.80
+FIXPOSITION_IP := 10.0.0.137
+
+configure:
+	@$(call mk_log,info,setting velodyne ip)
+	sed -i 's/192.168.1.201/$(VELODYNE_IP)/g' $(PKG_ROOT)/../velodyne_driver/share/velodyne_driver/config/VLP16-velodyne_driver_node-params.yaml
+	@$(call mk_log,info,setting fixposition ip)
+	sed -i 's/10.0.2.1/$(FIXPOSITION_IP)/g' $(PKG_ROOT)/../fixposition_driver_ros2/share/fixposition_driver_ros2/launch/config.yaml
+
+# === PROJECT RUN === EXECUTE ON LEO ROVER ===
+
+run:
+	@screen -dmS ros2_launch bash -c ' \
+		source /opt/ros/jazzy/setup.bash && \
+		source install/setup.bash && \
+		ros2 launch ros2_lidar_georeference file_manager_with_rosbridge.launch.py'
+
+# === CLEAN ENVIRONMENT === EXECUTE ON EITHER ===
+
+clean:
+	@if grep -q "Raspberry Pi 4" /proc/device-tree/model 2>/dev/null; then \
+		$(call mk_log,warn,cleaning rover environment); \
+		if [ -f $(CONF_FILE) ]; then \
+			$(call mk_log,info,removing nginx config); \
+			sudo rm -f $(CONF_FILE); \
+		else \
+			$(call mk_log,info,nginx config not found, skipping); \
+		fi; \
+		if [ -d $(WEB_ROOT) ]; then \
+			$(call mk_log,info,removing web root $(WEB_ROOT)); \
+			sudo rm -rf $(WEB_ROOT); \
+		else \
+			$(call mk_log,info,web root not found, skipping); \
+		fi; \
+		$(call mk_log,info,removing users from webshare group); \
+		sudo gpasswd -d pi webshare 2>/dev/null || true; \
+		sudo gpasswd -d www-data webshare 2>/dev/null || true; \
+		$(call mk_log,info,removing webshare group); \
+		sudo groupdel webshare 2>/dev/null || true; \
+		sudo $(NGINX) -t; \
+		sudo $(NGINX) -s reload; \
+		$(call mk_log,info,removing tmp data); \
+		rm -rf /var/tmp/ros2_lidar_georeference \
+		$(call mk_log,succ,uninstall complete. you may need to log out/in for group changes to take effect); \
 	else \
-		echo "Config file not found, skipping..."; \
+		$(call mk_log,warn,cleaning local environment); \
+		docker image rm ros2_lidar_georeference:builder 2>/dev/null || true; \
+		rm -rf install/ upload.zip; \
 	fi
-	@if [ -d $(WEB_ROOT) ]; then \
-		echo "Removing web root $(WEB_ROOT)..."; \
-		sudo rm -rf $(WEB_ROOT); \
-	else \
-		echo "Web root not found, skipping..."; \
-	fi
-	@echo "Removing users from webshare group..."
-	@sudo gpasswd -d pi webshare 2>/dev/null || true
-	@sudo gpasswd -d www-data webshare 2>/dev/null || true
-	@echo "Removing webshare group..."
-	@sudo groupdel webshare 2>/dev/null || true
-	@$(MAKE) nginx-test || true
-	@$(MAKE) nginx-reload
-	@echo "Uninstall complete. You may need to log out/in for group changes to take effect."
-
-nginx-reload: FORCE
-	@echo "Reloading nginx"
-	@sudo $(NGINX) -s reload
-
-nginx-test: FORCE
-	@echo "Testing nginx config"
-	@sudo $(NGINX) -t
-
-FORCE: ;
-
-run: nginx-install
-	sed -i 's/192.168.1.201/$(VELODYNE_IP)/g' $(ROOT_DIR)/../velodyne_driver/share/velodyne_driver/config/VLP16-velodyne_driver_node-params.yaml
-	sed -i 's/10.0.2.1/$(FIXPOSITION_IP)/g' $(ROOT_DIR)/../fixposition_driver_ros2/share/fixposition_driver_ros2/launch/config.yaml
-	@bash -c "source /opt/ros/jazzy/setup.bash && \
-	    source install/setup.bash && \
-	    ros2 launch ros2_lidar_georeference file_manager_with_rosbridge.launch.py"
-
-# === RULES FOR EXECUTION ON BUILD PC ===
-build-packages:
-	sudo rm -rf install/
-	sudo docker build --platform linux/arm64 --tag ros2_lidar_georeference:builder .
-	container_id=$$(sudo docker create ros2_lidar_georeference:builder) && \
-	sudo docker cp $$container_id:/ws/install/ install/ && \
-	sudo docker rm $$container_id
-
-push-packages:
-	@echo "Pushing packages to Leo Rover"
-	zip -r package.zip install/
-	scp -r {package.zip,makefile} pi@10.0.0.1:/home/pi/ros2_lidar_georeference
-
-test-1:
-	ros2 topic pub /measurement/collect   ros2_lidar_georeference/msg/MeasurementCollect   "{uuid: '123e4567-e89b-12d3-a456-426614174000'}" --once
-
-test-2:
-	ros2 topic pub /measurement/collect   ros2_lidar_georeference/msg/MeasurementCollect   "{uuid: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'}" --once
-
-test-3:
-	ros2 service call /measurement/process   ros2_lidar_georeference/srv/MeasurementProcess   "{uuid: '123e4567-e89b-12d3-a456-426614174000'}"
-
-test-7:
-	ros2 action send_goal /measurement ros2_lidar_georeference/action/Measurement "{request_value: 1}"
