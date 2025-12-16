@@ -22,8 +22,33 @@ On user request, the package records [Velodyne](https://github.com/ros-drivers/v
 |----------|----------|
 | ![Vision-RTK 2 Sensor](image/IMG_1821-min.jpg) | ![GNSS Antennas](image/IMG_1822-min.jpg) |
 
+## Package: Build and Upload
 
-## ...
+Repository contains a Dockerfile definition of a an image that builds all the packages in release mode, without symlinks. This way we can assure that the install/ folder is portable and can be copied between machines. If you have docker installed and daemon running, run:
+
+```bash
+make build
+```
+
+As a result, you will see a zip archive `upload.zip`. It contains the contents of the `install` folder as well as a `makefile`. To upload the project on the Leo Rover, connect to its WiFi network and run:
+
+```bash
+make upload
+```
+
+At this point the project is built and ready for execution on the Leo Rover. As the last step you can run:
+
+```bash
+make clean
+```
+
+To clean the environment on your local PC.
+
+> [!WARNING]  
+> Executing `make clean` does not clean the docker builder cache. To do so run `docker builder prune`.
+
+
+
 
 1. Build ROS2 drivers for `velodyne`, `fixposition` and the `ros2_lidar_georeference` package:
 
