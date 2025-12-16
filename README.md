@@ -1,8 +1,10 @@
 # ros2_lidar_georeference
 
-This package is designed for a [Leo Rover](https://www.leorover.tech/) robot, but can be ported to other machines that run ROS2 Jazzy, Rosbridge, and Nginx.
+This package is developed for the [Leo Rover](https://www.leorover.tech/) platform, but can be adapted to other systems running ROS 2 Jazzy, Rosbridge, and Nginx.
 
-| Leo Rover with installed Velodyne VLP16 and Fixpostion Vision-RTK 2 |
+On user request, the package records [Velodyne](https://github.com/ros-drivers/velodyne) LiDAR point clouds together with ECEF positioning data published by the [Fixposition](https://github.com/fixposition/fixposition_driver) driver, storing the data in a temporary workspace. When the measurement session is stopped, the collected data is fused offline into a single .las file ([LAS version 1.2](https://liblas.org/_static/files/specifications/asprs_las_format_v12.pdf)), which is then made available for user download.
+
+| Leo Rover with installed Velodyne VLP16 and Fixpostion Vision-RTK 2 sensors |
 |----------|
 | ![Rover Image](image/IMG_1818-min.jpg) |
 
