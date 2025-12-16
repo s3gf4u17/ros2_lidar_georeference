@@ -1,5 +1,17 @@
 # ros2_lidar_georeference
 
+This package is designed for a [Leo Rover](https://www.leorover.tech/) robot, but can be ported to other machines that run ROS2 Jazzy, Rosbridge, and Nginx.
+
+| Leo Rover with installed Velodyne VLP16 and Fixpostion Vision-RTK 2 |
+|----------|
+| ![Rover Image](img/rover.jpeg) |
+
+
+
+
+
+
+
 1. Build ROS2 drivers for `velodyne`, `fixposition` and the `ros2_lidar_georeference` package:
 
 ```bash
@@ -39,6 +51,6 @@ ros2 launch velodyne velodyne-all-nodes-VLP16-launch.py
 ros2 topic echo /velodyne_points
 ```
 
-![Rover Image](img/rover.jpeg)
+
 
 package is designed for leo rover, but can be ported to other machines that run rosbridge and nginx. just update 'dest' nginx directory in script/setup.sh
