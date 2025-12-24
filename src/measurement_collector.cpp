@@ -162,19 +162,20 @@ private:
             return;
         
         std::vector<uint8_t> buffer;
-        buffer.reserve(msg->width * msg->height * 16); // 4 floats (x,y,z,intensity) * 4 bytes
+        buffer.reserve(msg->width * msg->height * 20); // 5 floats (x,y,z,intensity,timestamp) * 4 bytes
         
         sensor_msgs::PointCloud2ConstIterator<float> it_x(*msg, "x");
         sensor_msgs::PointCloud2ConstIterator<float> it_y(*msg, "y");
         sensor_msgs::PointCloud2ConstIterator<float> it_z(*msg, "z");
         sensor_msgs::PointCloud2ConstIterator<float> it_i(*msg, "intensity");
-        
+        sensor_msgs::PointCloud2ConstIterator<float> it_t(*msg, "time");
+
         for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z, ++it_i)
         {
-            float xyzI[4] = {*it_x, *it_y, *it_z, *it_i};
+            float xyzIT[5] = {*it_x, *it_y, *it_z, *it_i, *it_t};
             buffer.insert(buffer.end(),
-                        reinterpret_cast<uint8_t*>(xyzI),
-                        reinterpret_cast<uint8_t*>(xyzI) + sizeof(xyzI));
+                        reinterpret_cast<uint8_t*>(xyzIT),
+                        reinterpret_cast<uint8_t*>(xyzIT) + sizeof(xyzIT));
         }
         
         enqueue(Job{

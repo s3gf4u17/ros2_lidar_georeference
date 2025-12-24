@@ -194,7 +194,7 @@ private:
         tf2::Matrix3x3 R(q);
         
         std::ifstream in(f.path(), std::ios::binary);
-        float xyzI[4];
+        float xyzI[5];
         while (in.read(reinterpret_cast<char*>(xyzI), sizeof(xyzI))) {
             tf2::Vector3 p_l(xyzI[0], xyzI[1], xyzI[2]);
             tf2::Vector3 p_e = R * p_l + tf2::Vector3(pose.x, pose.y, pose.z);
@@ -247,7 +247,7 @@ private:
         tf2::Matrix3x3 R(q);
         
         std::ifstream in(f.path(), std::ios::binary);
-        float xyzI[4];
+        float xyzI[5];
         while (in.read(reinterpret_cast<char*>(xyzI), sizeof(xyzI))) {
             tf2::Vector3 p_l(xyzI[0], xyzI[1], xyzI[2]);
             tf2::Vector3 p_e = R * p_l + tf2::Vector3(pose.x, pose.y, pose.z);
@@ -270,7 +270,7 @@ private:
     las.close();
     
     /* ---- Cleanup ---- */
-    // cleanup_raw_files(points_dir, pos_dir);
+    cleanup_raw_files(points_dir, pos_dir);
 }
 
 };
