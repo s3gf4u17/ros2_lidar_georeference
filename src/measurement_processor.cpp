@@ -153,99 +153,126 @@ private:
     }
 
     void process(const std::string& uuid)
-    {
-        fs::path raw = fs::path("/var/tmp/ros2_lidar_georeference") / "raw";
-        fs::path points_dir = raw / "points";
-        fs::path pos_dir = raw / "position";
-
-        RCLCPP_INFO(get_logger(), "Measurement processor launched");
-
-        RCLCPP_INFO(
-            this->get_logger(),
-            "Looking for raw data:\n  points_dir = %s\n  position_dir = %s",
-            points_dir.string().c_str(),
-            pos_dir.string().c_str()
-        );
-
-        if (!fs::exists(points_dir) || !fs::exists(pos_dir))
-            throw std::runtime_error("Missing raw data");
-
-        RCLCPP_INFO(get_logger(), "RAW data exists");
-
-        /* ---- Load poses ---- */
-
-        std::map<int64_t, PoseECEF> poses;
-
-        for (auto& f : fs::directory_iterator(pos_dir)) {
-            poses[parseStamp(f.path())] = readPose(f.path());
-        }
-
-        /* ---- Open LAS ---- */
-
-        fs::path out = fs::path(OUTPUT_ROOT) / (uuid + ".las");
-        std::ofstream las(out, std::ios::binary);
-
-        LasHeader hdr{};
-        memcpy(hdr.FileSignatureLASF, "LASF", 4);
-        hdr.versionMaj = 1;
-        hdr.versionMin = 2;
-        hdr.headerSize = sizeof(LasHeader);
-        hdr.offsetToPointData = sizeof(LasHeader);
-        hdr.pointDataFormat = 1;
-        hdr.pointDataRecordLen = sizeof(LasPointRecord);
-        hdr.x_sca = hdr.y_sca = hdr.z_sca = 0.001;
-
-        las.write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
-
-        uint32_t point_count = 0;
-
-        /* ---- Process clouds ---- */
-
-        for (auto& f : fs::directory_iterator(points_dir)) {
-
-            int64_t t = parseStamp(f.path());
-
-            auto it = poses.lower_bound(t);
-            if (it == poses.end())
-                continue;
-
-            PoseECEF pose = it->second;
-
-            tf2::Quaternion q;
-            q.setRPY(pose.roll, pose.pitch, pose.yaw);
-            tf2::Matrix3x3 R(q);
-
-            std::ifstream in(f.path(), std::ios::binary);
-            float xyz[3];
-
-            while (in.read(reinterpret_cast<char*>(xyz), sizeof(xyz))) {
-
-                tf2::Vector3 p_l(xyz[0], xyz[1], xyz[2]);
-                tf2::Vector3 p_e = R * p_l +
-                    tf2::Vector3(pose.x, pose.y, pose.z);
-
-                LasPointRecord rec{};
-                rec.xpos = static_cast<int32_t>(p_e.x() / hdr.x_sca);
-                rec.ypos = static_cast<int32_t>(p_e.y() / hdr.y_sca);
-                rec.zpos = static_cast<int32_t>(p_e.z() / hdr.z_sca);
-                rec.gps_time = double(t) * 1e-9;
-
-                las.write(reinterpret_cast<char*>(&rec), sizeof(rec));
-                point_count++;
-            }
-        }
-
-        /* ---- Finalize header ---- */
-
-        hdr.numOfPointRecords = point_count;
-        las.seekp(0);
-        las.write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
-        las.close();
-
-        /* ---- Cleanup ---- */
-
-        cleanup_raw_files(points_dir, pos_dir);
+{
+    fs::path raw = fs::path("/var/tmp/ros2_lidar_georeference") / "raw";
+    fs::path points_dir = raw / "points";
+    fs::path pos_dir = raw / "position";
+    RCLCPP_INFO(get_logger(), "Measurement processor launched");
+    RCLCPP_INFO(
+        this->get_logger(),
+        "Looking for raw data:\n  points_dir = %s\n  position_dir = %s",
+        points_dir.string().c_str(),
+        pos_dir.string().c_str()
+    );
+    if (!fs::exists(points_dir) || !fs::exists(pos_dir))
+        throw std::runtime_error("Missing raw data");
+    RCLCPP_INFO(get_logger(), "RAW data exists");
+    
+    /* ---- Load poses ---- */
+    std::map<int64_t, PoseECEF> poses;
+    for (auto& f : fs::directory_iterator(pos_dir)) {
+        poses[parseStamp(f.path())] = readPose(f.path());
     }
+    
+    /* ---- First pass: compute bounding box ---- */
+    double x_min = std::numeric_limits<double>::max();
+    double x_max = std::numeric_limits<double>::lowest();
+    double y_min = std::numeric_limits<double>::max();
+    double y_max = std::numeric_limits<double>::lowest();
+    double z_min = std::numeric_limits<double>::max();
+    double z_max = std::numeric_limits<double>::lowest();
+    
+    for (auto& f : fs::directory_iterator(points_dir)) {
+        int64_t t = parseStamp(f.path());
+        auto it = poses.lower_bound(t);
+        if (it == poses.end())
+            continue;
+        
+        PoseECEF pose = it->second;
+        tf2::Quaternion q;
+        q.setRPY(pose.roll, pose.pitch, pose.yaw);
+        tf2::Matrix3x3 R(q);
+        
+        std::ifstream in(f.path(), std::ios::binary);
+        float xyzI[4];
+        while (in.read(reinterpret_cast<char*>(xyzI), sizeof(xyzI))) {
+            tf2::Vector3 p_l(xyzI[0], xyzI[1], xyzI[2]);
+            tf2::Vector3 p_e = R * p_l + tf2::Vector3(pose.x, pose.y, pose.z);
+            
+            x_min = std::min(x_min, p_e.x());
+            x_max = std::max(x_max, p_e.x());
+            y_min = std::min(y_min, p_e.y());
+            y_max = std::max(y_max, p_e.y());
+            z_min = std::min(z_min, p_e.z());
+            z_max = std::max(z_max, p_e.z());
+        }
+    }
+    
+    /* ---- Open LAS ---- */
+    fs::path out = fs::path(OUTPUT_ROOT) / (uuid + ".las");
+    std::ofstream las(out, std::ios::binary);
+    
+    LasHeader hdr{};
+    memcpy(hdr.FileSignatureLASF, "LASF", 4);
+    hdr.versionMaj = 1;
+    hdr.versionMin = 2;
+    hdr.headerSize = sizeof(LasHeader);
+    hdr.offsetToPointData = sizeof(LasHeader);
+    hdr.pointDataFormat = 1;
+    hdr.pointDataRecordLen = sizeof(LasPointRecord);
+    hdr.x_sca = hdr.y_sca = hdr.z_sca = 0.001;
+    hdr.x_off = x_min;  // Set offset to minimum value
+    hdr.y_off = y_min;
+    hdr.z_off = z_min;
+    hdr.x_min = x_min;
+    hdr.x_max = x_max;
+    hdr.y_min = y_min;
+    hdr.y_max = y_max;
+    hdr.z_min = z_min;
+    hdr.z_max = z_max;
+    
+    las.write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+    uint32_t point_count = 0;
+    
+    /* ---- Second pass: write points ---- */
+    for (auto& f : fs::directory_iterator(points_dir)) {
+        int64_t t = parseStamp(f.path());
+        auto it = poses.lower_bound(t);
+        if (it == poses.end())
+            continue;
+        
+        PoseECEF pose = it->second;
+        tf2::Quaternion q;
+        q.setRPY(pose.roll, pose.pitch, pose.yaw);
+        tf2::Matrix3x3 R(q);
+        
+        std::ifstream in(f.path(), std::ios::binary);
+        float xyzI[4];
+        while (in.read(reinterpret_cast<char*>(xyzI), sizeof(xyzI))) {
+            tf2::Vector3 p_l(xyzI[0], xyzI[1], xyzI[2]);
+            tf2::Vector3 p_e = R * p_l + tf2::Vector3(pose.x, pose.y, pose.z);
+            
+            LasPointRecord rec{};
+            rec.xpos = static_cast<int32_t>((p_e.x() - hdr.x_off) / hdr.x_sca);
+            rec.ypos = static_cast<int32_t>((p_e.y() - hdr.y_off) / hdr.y_sca);
+            rec.zpos = static_cast<int32_t>((p_e.z() - hdr.z_off) / hdr.z_sca);
+            rec.intensity = static_cast<uint16_t>(xyzI[3]);
+            rec.gps_time = double(t) * 1e-9;
+            las.write(reinterpret_cast<char*>(&rec), sizeof(rec));
+            point_count++;
+        }
+    }
+    
+    /* ---- Finalize header ---- */
+    hdr.numOfPointRecords = point_count;
+    las.seekp(0);
+    las.write(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+    las.close();
+    
+    /* ---- Cleanup ---- */
+    // cleanup_raw_files(points_dir, pos_dir);
+}
+
 };
 
 /* ---------------- main ---------------- */

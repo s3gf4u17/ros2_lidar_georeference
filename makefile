@@ -41,7 +41,7 @@ build:
 	@rm -rf install/ upload.zip \
 		|| {$(call mk_log,erro,failed to remove old build files); exit 1;}
 	@$(call mk_log,info,creating docker builder image. this may take a moment)
-	@docker build --quiet --platform linux/arm64 --tag ros2_lidar_georeference:builder . \
+	@docker build --platform linux/arm64 --tag ros2_lidar_georeference:builder . \
 		|| {$(call mk_log,erro,failed to create docker builder image); exit 2;}
 	@$(call mk_log,info,extracting install/ folder from the builder image)
 	@container_id=$$(docker create ros2_lidar_georeference:builder) \

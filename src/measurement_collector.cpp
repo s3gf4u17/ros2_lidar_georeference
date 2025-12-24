@@ -156,26 +156,27 @@ private:
     {
         if (!recording_)
             return;
-
+        
         velodyne_counter_++;
         if ((velodyne_counter_ - 1) % skip_ != 0)
             return;
-
+        
         std::vector<uint8_t> buffer;
-        buffer.reserve(msg->width * msg->height * 12);
-
+        buffer.reserve(msg->width * msg->height * 16); // 4 floats (x,y,z,intensity) * 4 bytes
+        
         sensor_msgs::PointCloud2ConstIterator<float> it_x(*msg, "x");
         sensor_msgs::PointCloud2ConstIterator<float> it_y(*msg, "y");
         sensor_msgs::PointCloud2ConstIterator<float> it_z(*msg, "z");
-
-        for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z)
+        sensor_msgs::PointCloud2ConstIterator<float> it_i(*msg, "intensity");
+        
+        for (; it_x != it_x.end(); ++it_x, ++it_y, ++it_z, ++it_i)
         {
-            float xyz[3] = {*it_x, *it_y, *it_z};
+            float xyzI[4] = {*it_x, *it_y, *it_z, *it_i};
             buffer.insert(buffer.end(),
-                reinterpret_cast<uint8_t*>(xyz),
-                reinterpret_cast<uint8_t*>(xyz) + sizeof(xyz));
+                        reinterpret_cast<uint8_t*>(xyzI),
+                        reinterpret_cast<uint8_t*>(xyzI) + sizeof(xyzI));
         }
-
+        
         enqueue(Job{
             JobType::POINTS,
             msg->header.stamp,
